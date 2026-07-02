@@ -31,6 +31,7 @@ titanic_restful_project/
 ├── analysis.py            # 資料分析邏輯：各種 EDA 統計計算（人口統計/階級/家庭/港口/特徵工程/相關性）
 ├── init_db.py             # 讀取 titanic.csv，建立 SQLite 資料庫 my_db.db
 ├── titanic.csv             # 原始資料集
+├── sample_passengers_for_prediction #多筆假資料測試集
 ├── requirements.txt         # 套件需求
 ├── templates/
 │   ├── index.html             # 乘客列表首頁
