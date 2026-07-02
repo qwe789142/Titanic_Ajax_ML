@@ -1,0 +1,32 @@
+{
+  "best_model_name": "RandomForest",
+  "best_params": {
+    "classifier__max_depth": 5,
+    "classifier__min_samples_split": 2,
+    "classifier__n_estimators": 100
+  },
+  "cv_accuracy": 0.823116320299419,
+  "test_accuracy": 0.8156424581005587,
+  "all_candidates_results": {
+    "LogisticRegression": {
+      "best_params": {
+        "classifier__C": 0.1,
+        "classifier__solver": "lbfgs"
+      },
+      "cv_accuracy": 0.8020388062641584,
+      "test_accuracy": 0.7932960893854749
+    },
+    "RandomForest": {
+      "best_params": {
+        "classifier__max_depth": 5,
+        "classifier__min_samples_split": 2,
+        "classifier__n_estimators": 100
+      },
+      "cv_accuracy": 0.823116320299419,
+      "test_accuracy": 0.8156424581005587
+    }
+  },
+  "n_samples": 891,
+  "trained_at": "2026-07-02 10:54:52",
+  "model_path": "models\\titanic_model.joblib"
+}

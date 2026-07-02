@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <title>預測乘客存活</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            max-width: 900px;
+        }
+
+        section {
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        input, select {
+            padding: 6px;
+            width: 300px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+
+        .result-card {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .result-survived {
+            background: #e8f5e9;
+            border: 1px solid #66bb6a;
+        }
+
+        .result-not-survived {
+            background: #ffebee;
+            border: 1px solid #ef5350;
+        }
+
+        .prob-bar-bg {
+            width: 100%;
+            background: #ddd;
+            border-radius: 4px;
+            height: 20px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            background: #42a5f5;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            font-size: 13px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .tag-survived {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .tag-not-survived {
+            color: #c62828;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>預測乘客存活</h1>
+    <p><a href="/">回首頁</a> | <a href="/ml/train">前往訓練模型</a></p>
+
+    <!-- ============================================================ -->
+    <!-- 區塊 1：單筆輸入預測 -->
+    <!-- ============================================================ -->
+    <section>
+        <h2>單筆輸入預測</h2>
+
+        <form id="singleForm">
+            <label>Pclass（艙等）</label>
+            <select name="Pclass" required>
+                <option value="1">1 等艙</option>
+                <option value="2">2 等艙</option>
+                <option value="3" selected>3 等艙</option>
+            </select>
+
+            <label>Sex（性別）</label>
+            <select name="Sex" required>
+                <option value="male">male</option>
+                <option value="female">female</option>
+            </select>
+
+            <label>Age（年齡，可留空）</label>
+            <input name="Age" type="number" step="0.01" min="0">
+
+            <label>SibSp（同行兄弟姊妹/配偶數）</label>
+            <input name="SibSp" type="number" min="0" value="0" required>
+
+            <label>Parch（同行父母/子女數）</label>
+            <input name="Parch" type="number" min="0" value="0" required>
+
+            <label>Fare（票價）</label>
+            <input name="Fare" type="number" step="0.0001" min="0" value="30" required>
+
+            <label>Embarked（登船港口，可留空）</label>
+            <select name="Embarked">
+                <option value="">未知</option>
+                <option value="C">C</option>
+                <option value="Q">Q</option>
+                <option value="S">S</option>
+            </select>
+
+            <button type="submit">預測</button>
+        </form>
+
+        <div id="singleResult" class="result-card">
+            <h3 id="singleResultTitle"></h3>
+            <p id="singleResultText"></p>
+            <div class="prob-bar-bg">
+                <div id="probBar" class="prob-bar-fill" style="width: 0%;"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 區塊 2：CSV 批次預測 -->
+    <!-- ============================================================ -->
+    <section>
+        <h2>批次預測（上傳 CSV）</h2>
+        <p>
+            CSV 檔案必須包含以下欄位：
+            <code>Pclass, Sex, Age, SibSp, Parch, Fare, Embarked</code>
+            （順序不拘，Age / Embarked 可以留空）。
+            如果有 <code>PassengerId</code>、<code>Name</code> 欄位，會一併顯示在結果表格中。
+        </p>
+
+        <form id="batchForm">
+            <input type="file" id="csvFile" name="file" accept=".csv" required>
+            <button type="submit">上傳並預測</button>
+        </form>
+
+        <div id="batchSummary"></div>
+        <div style="overflow-x: auto;">
+            <table id="batchTable" style="display: none;">
+                <thead>
+                    <tr id="batchTableHead"></tr>
+                </thead>
+                <tbody id="batchTableBody"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <script>
+        // ---------------- 單筆預測 ----------------
+        document.getElementById("singleForm").addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Age / Embarked 留空時，轉成 null，讓後端的缺值補值機制處理
+            if (data.Age === "") data.Age = null;
+            if (data.Embarked === "") data.Embarked = null;
+
+            const response = await fetch("/api/ml/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                alert(result.error || "預測失敗");
+                return;
+            }
+
+            renderSingleResult(result.item);
+        });
+
+        function renderSingleResult(item) {
+            const card = document.getElementById("singleResult");
+            const title = document.getElementById("singleResultTitle");
+            const text = document.getElementById("singleResultText");
+            const bar = document.getElementById("probBar");
+
+            const survived = item.Survived_pred === 1;
+            const probPercent = (item.Survival_probability * 100).toFixed(2);
+
+            card.style.display = "block";
+            card.className = "result-card " + (survived ? "result-survived" : "result-not-survived");
+
+            title.textContent = survived ? "預測結果：存活 🟢" : "預測結果：未存活 🔴";
+            text.textContent = `模型預測存活機率為 ${probPercent}%`;
+
+            bar.style.width = probPercent + "%";
+        }
+
+        // ---------------- 批次預測 (CSV) ----------------
+        document.getElementById("batchForm").addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById("csvFile");
+            if (!fileInput.files.length) {
+                alert("請先選擇一個 CSV 檔案");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            const response = await fetch("/api/ml/predict", {
+                method: "POST",
+                body: formData  // 注意：上傳檔案時不要自己設定 Content-Type，
+                                 // 瀏覽器會自動幫 FormData 加上正確的 multipart 邊界字串
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                alert(result.error || "預測失敗");
+                return;
+            }
+
+            renderBatchResult(result.items);
+        });
+
+        function renderBatchResult(items) {
+            document.getElementById("batchSummary").textContent =
+                `共預測 ${items.length} 筆資料`;
+
+            if (items.length === 0) return;
+
+            // 決定要顯示哪些欄位：優先顯示常見欄位，其餘欄位放後面
+            const preferredCols = [
+                "PassengerId", "Name", "Pclass", "Sex", "Age",
+                "SibSp", "Parch", "Fare", "Embarked",
+                "Survived_pred", "Survival_probability"
+            ];
+            const allCols = Object.keys(items[0]);
+            const cols = preferredCols.filter(c => allCols.includes(c));
+
+            const thead = document.getElementById("batchTableHead");
+            thead.innerHTML = cols.map(c => `<th>${c}</th>`).join("");
+
+            const tbody = document.getElementById("batchTableBody");
+            tbody.innerHTML = "";
+
+            for (const item of items) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = cols.map(c => {
+                    if (c === "Survived_pred") {
+                        const survived = item[c] === 1;
+                        return `<td class="${survived ? 'tag-survived' : 'tag-not-survived'}">
+                            ${survived ? "存活" : "未存活"}
+                        </td>`;
+                    }
+                    if (c === "Survival_probability") {
+                        return `<td>${(item[c] * 100).toFixed(2)}%</td>`;
+                    }
+                    return `<td>${item[c] ?? ""}</td>`;
+                }).join("");
+                tbody.appendChild(tr);
+            }
+
+            document.getElementById("batchTable").style.display = "table";
+        }
+    </script>
+</body>
+
+</html>
