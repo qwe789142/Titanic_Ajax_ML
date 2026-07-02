@@ -12,12 +12,12 @@
 
 ## 功能總覽
 
-| 類別 | 功能 |
-| --- | --- |
-| 資料管理 | 乘客列表（分頁、姓名搜尋）、新增、編輯、刪除 |
+| 類別     | 功能                                                                           |
+| -------- | ------------------------------------------------------------------------------ |
+| 資料管理 | 乘客列表（分頁、姓名搜尋）、新增、編輯、刪除                                   |
 | 模型訓練 | 一鍵訓練，自動用 GridSearchCV 調整超參數，比較邏輯迴歸與隨機森林，選出最佳模型 |
-| 訓練狀態 | 背景執行緒訓練，前端輪詢顯示「訓練中 / 已完成」，並顯示最佳超參數與準確率 |
-| 模型預測 | 單筆表單輸入預測存活機率；上傳 CSV 批次預測 |
+| 訓練狀態 | 背景執行緒訓練，前端輪詢顯示「訓練中 / 已完成」，並顯示最佳超參數與準確率      |
+| 模型預測 | 單筆表單輸入預測存活機率；上傳 CSV 批次預測                                    |
 
 ---
 
@@ -82,21 +82,21 @@ python app.py
 
 ### 乘客資料 CRUD
 
-| Method | Endpoint | 說明 |
-| --- | --- | --- |
-| GET | `/api/passengers?page=&per_page=&search=` | 取得乘客列表（分頁、可依姓名搜尋） |
-| GET | `/api/passengers/<id>` | 取得單一乘客 |
-| POST | `/api/passengers` | 新增乘客（JSON body） |
-| PUT | `/api/passengers/<id>` | 修改乘客（JSON body） |
-| DELETE | `/api/passengers/<id>` | 刪除乘客 |
+| Method | Endpoint                                    | 說明                               |
+| ------ | ------------------------------------------- | ---------------------------------- |
+| GET    | `/api/passengers?page=&per_page=&search=` | 取得乘客列表（分頁、可依姓名搜尋） |
+| GET    | `/api/passengers/<id>`                    | 取得單一乘客                       |
+| POST   | `/api/passengers`                         | 新增乘客（JSON body）              |
+| PUT    | `/api/passengers/<id>`                    | 修改乘客（JSON body）              |
+| DELETE | `/api/passengers/<id>`                    | 刪除乘客                           |
 
 ### 機器學習
 
-| Method | Endpoint | 說明 |
-| --- | --- | --- |
-| POST | `/api/ml/train` | 觸發一次背景訓練（202 表示已開始；訓練中再次呼叫回 409） |
-| GET | `/api/ml/status` | 查詢目前訓練狀態、最佳超參數與準確率 |
-| POST | `/api/ml/predict` | 預測。JSON body = 單筆；`multipart/form-data`（欄位名 `file`）= CSV 批次 |
+| Method | Endpoint            | 說明                                                                         |
+| ------ | ------------------- | ---------------------------------------------------------------------------- |
+| POST   | `/api/ml/train`   | 觸發一次背景訓練（202 表示已開始；訓練中再次呼叫回 409）                     |
+| GET    | `/api/ml/status`  | 查詢目前訓練狀態、最佳超參數與準確率                                         |
+| POST   | `/api/ml/predict` | 預測。JSON body = 單筆；`multipart/form-data`（欄位名 `file`）= CSV 批次 |
 
 **單筆預測範例：**
 
@@ -142,9 +142,9 @@ curl -X POST http://127.0.0.1:5000/api/ml/predict \
 
 ### 候選模型與超參數搜尋範圍
 
-| 模型 | 調整的超參數 |
-| --- | --- |
-| `LogisticRegression` | `C`: [0.01, 0.1, 1, 10]、`solver`: [liblinear, lbfgs] |
+| 模型                       | 調整的超參數                                                                              |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| `LogisticRegression`     | `C`: [0.01, 0.1, 1, 10]、`solver`: [liblinear, lbfgs]                                 |
 | `RandomForestClassifier` | `n_estimators`: [100, 200]、`max_depth`: [None, 5, 10]、`min_samples_split`: [2, 5] |
 
 兩個模型都用 `GridSearchCV`（5-fold 交叉驗證）找出各自的最佳超參數，再用「訓練時完全沒看過」的測試集（20% 資料）評估，選出測試集準確率較高的當作最終模型，並用該組最佳超參數在**全部資料**上重新訓練一次，存到 `models/titanic_model.joblib`。
@@ -160,9 +160,3 @@ curl -X POST http://127.0.0.1:5000/api/ml/predict \
 - 範例中的模型與超參數搜尋範圍是示範用途，數量不多，實際準確率沒有特別調優
 - 訓練狀態存在記憶體中的全域變數，僅適合單一 process 開發環境使用；正式多人多程序環境需要改用資料庫或 Redis 等外部儲存
 - `app.py` 用 `debug=True` 啟動，正式上線前應關閉
-
----
-
-## 開發者
-
-（在這裡填上你的姓名、學號）
