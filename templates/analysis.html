@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <title>資料分析視覺化</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            max-width: 1100px;
+        }
+
+        h1 { margin-bottom: 4px; }
+
+        .subtitle {
+            color: #666;
+            margin-top: 0;
+        }
+
+        .kpi-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin: 20px 0 30px;
+        }
+
+        .kpi-card {
+            flex: 1;
+            min-width: 140px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .kpi-card .value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .kpi-card .label {
+            color: #666;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        section {
+            margin-bottom: 48px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        section h2 {
+            border-left: 5px solid #42a5f5;
+            padding-left: 10px;
+        }
+
+        .chart-row {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .chart-box {
+            flex: 1;
+            min-width: 320px;
+            position: relative;
+            height: 320px;
+        }
+
+        .insight {
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            padding: 10px 14px;
+            margin-top: 14px;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px 10px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f2f2f2;
+        }
+
+        .loading, .empty-notice {
+            color: #888;
+            font-style: italic;
+        }
+
+        .empty-notice a {
+            color: #1976d2;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>資料分析視覺化</h1>
+    <p class="subtitle">從目前資料庫（titanic 資料表）即時計算，不是寫死的靜態資料</p>
+    <p><a href="/">回首頁</a> | <a href="/ml/train">訓練模型</a> | <a href="/ml/predict">預測存活</a></p>
+
+    <div id="loadingText" class="loading">資料載入中...</div>
+
+    <div id="dashboard" style="display:none;">
+
+        <!-- KPI 總覽 -->
+        <div class="kpi-row" id="kpiRow"></div>
+
+        <!-- 1. 人口統計 -->
+        <section>
+            <h2>1. 人口統計與生存機率的關聯</h2>
+            <div class="chart-row">
+                <div class="chart-box"><canvas id="genderChart"></canvas></div>
+                <div class="chart-box"><canvas id="ageChart"></canvas></div>
+            </div>
+            <div class="insight" id="genderInsight"></div>
+            <div class="insight" id="ageInsight"></div>
+        </section>
+
+        <!-- 2. 社會階級與資源分配 -->
+        <section>
+            <h2>2. 社會階級與資源分配</h2>
+            <div class="chart-row">
+                <div class="chart-box"><canvas id="pclassChart"></canvas></div>
+                <div class="chart-box"><canvas id="fareChart"></canvas></div>
+            </div>
+            <div class="insight" id="pclassInsight"></div>
+            <div class="insight" id="fareInsight"></div>
+        </section>
+
+        <!-- 3. 家庭結構與同行人數 -->
+        <section>
+            <h2>3. 家庭結構與同行人數</h2>
+            <div class="chart-row">
+                <div class="chart-box"><canvas id="familyChart"></canvas></div>
+                <div class="chart-box"><canvas id="aloneChart"></canvas></div>
+            </div>
+            <div class="insight" id="familyInsight"></div>
+        </section>
+
+        <!-- 4. 登船地點 -->
+        <section>
+            <h2>4. 登船地點</h2>
+            <div class="chart-row">
+                <div class="chart-box"><canvas id="embarkedChart"></canvas></div>
+            </div>
+            <div class="insight" id="embarkedInsight"></div>
+        </section>
+
+        <!-- 5. 特徵工程 -->
+        <section>
+            <h2>5. 特徵工程（Feature Engineering）</h2>
+
+            <h3>缺失值狀況</h3>
+            <table id="missingTable">
+                <thead><tr><th>欄位</th><th>缺失筆數</th><th>缺失比例</th></tr></thead>
+                <tbody></tbody>
+            </table>
+
+            <h3 style="margin-top:24px;">從姓名萃取頭銜（Title）</h3>
+            <div class="chart-row">
+                <div class="chart-box"><canvas id="titleChart"></canvas></div>
+                <div class="chart-box"><canvas id="cabinChart"></canvas></div>
+            </div>
+            <div class="insight" id="titleInsight"></div>
+            <div class="insight" id="cabinInsight"></div>
+        </section>
+
+        <!-- 6. 特徵相關性 + 模型解釋 -->
+        <section>
+            <h2>6. 數值特徵相關性 &amp; 模型如何做決定</h2>
+
+            <h3>相關係數矩陣</h3>
+            <div id="corrTableWrap"></div>
+
+            <h3 style="margin-top:24px;">模型特徵重要性</h3>
+            <div id="featureImportanceWrap">
+                <div class="chart-box" style="height:280px;"><canvas id="importanceChart"></canvas></div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const CHART_COLORS = ["#42a5f5", "#ef5350", "#66bb6a", "#ffa726", "#ab47bc", "#26c6da", "#8d6e63", "#78909c"];
+
+        async function loadAnalysis() {
+            const response = await fetch("/api/analysis/summary");
+            const data = await response.json();
+
+            if (!response.ok) {
+                document.getElementById("loadingText").innerHTML =
+                    `<span class="empty-notice">${data.error || "資料載入失敗"}，請先到 <a href="/">首頁</a> 確認資料庫有資料。</span>`;
+                return;
+            }
+
+            document.getElementById("loadingText").style.display = "none";
+            document.getElementById("dashboard").style.display = "block";
+
+            renderKpi(data.overview);
+            renderBarChart("genderChart", data.gender, "存活率 (%)");
+            renderBarChart("ageChart", data.age, "存活率 (%)");
+            renderBarChart("pclassChart", data.pclass, "存活率 (%)");
+            renderBarChart("fareChart", data.fare, "存活率 (%)");
+            renderBarChart("familyChart", data.family, "存活率 (%)（依同行人數）");
+            renderBarChart("aloneChart", data.family.alone_vs_family, "存活率 (%)：獨自 vs 攜家帶眷");
+            renderBarChart("embarkedChart", data.embarked, "存活率 (%)");
+            renderBarChart("titleChart", data.title, "存活率 (%)（依頭銜）");
+            renderBarChart("cabinChart", data.cabin, "存活率 (%)");
+
+            renderInsight("genderInsight", data.gender.insight);
+            renderInsight("ageInsight", data.age.insight);
+            renderInsight("pclassInsight", data.pclass.insight);
+            renderInsight("fareInsight", data.fare.insight);
+            renderInsight("familyInsight", data.family.insight);
+            renderInsight("embarkedInsight", data.embarked.insight);
+            renderInsight("titleInsight", data.title.insight);
+            renderInsight("cabinInsight", data.cabin.insight);
+
+            renderMissingTable(data.missing_values);
+            renderCorrelationTable(data.correlation);
+            renderFeatureImportance(data.feature_importance);
+        }
+
+        function renderKpi(overview) {
+            const row = document.getElementById("kpiRow");
+            row.innerHTML = `
+                <div class="kpi-card"><div class="value">${overview.total}</div><div class="label">總乘客數</div></div>
+                <div class="kpi-card"><div class="value">${overview.survived}</div><div class="label">存活人數</div></div>
+                <div class="kpi-card"><div class="value">${overview.died}</div><div class="label">罹難人數</div></div>
+                <div class="kpi-card"><div class="value">${overview.survival_rate}%</div><div class="label">整體存活率</div></div>
+            `;
+        }
+
+        function renderInsight(elId, text) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            el.textContent = text ? `💡 ${text}` : "";
+            el.style.display = text ? "block" : "none";
+        }
+
+        // 用一個共用函式畫「類別 vs 存活率」的長條圖，並在 tooltip 顯示人數
+        function renderBarChart(canvasId, groupData, title) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx || !groupData || !groupData.labels) return;
+
+            new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: groupData.labels,
+                    datasets: [{
+                        label: "存活率 (%)",
+                        data: groupData.survival_rates,
+                        backgroundColor: groupData.labels.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]),
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: title },
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: (item) => {
+                                    const i = item.dataIndex;
+                                    const count = groupData.counts ? groupData.counts[i] : null;
+                                    const survived = groupData.survived_counts ? groupData.survived_counts[i] : null;
+                                    return count != null ? `樣本數: ${count}（存活 ${survived} 人）` : "";
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, title: { display: true, text: "存活率 (%)" } }
+                    }
+                }
+            });
+        }
+
+        function renderMissingTable(items) {
+            const tbody = document.querySelector("#missingTable tbody");
+            tbody.innerHTML = "";
+            for (const item of items) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td>${item.column}</td><td>${item.missing_count}</td><td>${item.missing_percent}%</td>`;
+                tbody.appendChild(tr);
+            }
+        }
+
+        // 相關係數矩陣：用 HTML table + 依數值染色，不用額外的 heatmap 套件
+        function renderCorrelationTable(corr) {
+            const wrap = document.getElementById("corrTableWrap");
+            const cols = corr.columns;
+
+            let html = "<table><thead><tr><th></th>";
+            for (const c of cols) html += `<th>${c}</th>`;
+            html += "</tr></thead><tbody>";
+
+            for (let i = 0; i < cols.length; i++) {
+                html += `<tr><th>${cols[i]}</th>`;
+                for (let j = 0; j < cols.length; j++) {
+                    const v = corr.matrix[i][j];
+                    html += `<td style="background:${corrColor(v)}">${v.toFixed(2)}</td>`;
+                }
+                html += "</tr>";
+            }
+            html += "</tbody></table>";
+            wrap.innerHTML = html;
+        }
+
+        // 正相關偏紅、負相關偏藍，數值絕對值越大顏色越深
+        function corrColor(value) {
+            const alpha = Math.min(Math.abs(value), 1);
+            if (value >= 0) {
+                return `rgba(239, 83, 80, ${alpha.toFixed(2)})`;
+            }
+            return `rgba(66, 165, 245, ${alpha.toFixed(2)})`;
+        }
+
+        function renderFeatureImportance(fi) {
+            const wrap = document.getElementById("featureImportanceWrap");
+
+            if (!fi) {
+                wrap.innerHTML = `<p class="empty-notice">尚未訓練模型，無法顯示特徵重要性，請先到 <a href="/ml/train">訓練模型頁面</a> 點擊訓練。</p>`;
+                return;
+            }
+
+            wrap.innerHTML = `
+                <p style="color:#666;font-size:13px;">計算方式：${fi.method}</p>
+                <div class="chart-box" style="height:${Math.max(280, fi.labels.length * 26)}px;">
+                    <canvas id="importanceChart"></canvas>
+                </div>
+            `;
+
+            new Chart(document.getElementById("importanceChart"), {
+                type: "bar",
+                data: {
+                    labels: fi.labels,
+                    datasets: [{
+                        label: "重要性",
+                        data: fi.importances,
+                        backgroundColor: "#42a5f5",
+                    }]
+                },
+                options: {
+                    indexAxis: "y",
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: "哪些特徵對模型預測影響最大？" },
+                        legend: { display: false },
+                    }
+                }
+            });
+        }
+
+        loadAnalysis();
+    </script>
+</body>
+
+</html>

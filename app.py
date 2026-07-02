@@ -4,6 +4,7 @@ import pandas as pd
 from flask import Flask, jsonify, request, render_template
 
 import ml_model  # 我們自己寫的機器學習模組（訓練 / 存檔 / 預測）
+import analysis  # 我們自己寫的資料分析模組（EDA 統計計算）
 
 app = Flask(__name__)
 
@@ -157,6 +158,11 @@ def ml_train_page():
 @app.route("/ml/predict")
 def ml_predict_page():
     return render_template("predict.html")
+
+# 資料分析視覺化頁面
+@app.route("/analysis")
+def analysis_page():
+    return render_template("analysis.html")
 
 
 # ============================================================
@@ -509,7 +515,26 @@ def predict():
 
 
 # ============================================================
-# 12. 啟動 Flask
+# 12. API：資料分析 - 一次取得所有 EDA 統計結果
+# GET /api/analysis/summary
+# ============================================================
+
+@app.route("/api/analysis/summary", methods=["GET"])
+def get_analysis_summary():
+    df = pd.read_sql_query("SELECT * FROM titanic", db)
+
+    if len(df) == 0:
+        return jsonify({"error": "資料庫目前沒有任何乘客資料，無法進行分析"}), 400
+
+    # 如果已經訓練過模型，順便把「特徵重要性」也算進去，讓分析頁可以呼應模型頁的結果
+    pipeline = ml_model.load_model()
+
+    result = analysis.compute_full_analysis(df, pipeline=pipeline)
+    return jsonify(result), 200
+
+
+# ============================================================
+# 13. 啟動 Flask
 # ============================================================
 
 if __name__ == "__main__":

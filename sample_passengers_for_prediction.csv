@@ -1,0 +1,16 @@
+PassengerId,Name,Pclass,Sex,Age,SibSp,Parch,Fare,Embarked
+9001,Wu Jia Hui,1,female,29,0,0,150.0,S
+9002,Chen Wei Ming,3,male,22,1,0,7.25,S
+9003,Lin Yi Ting,1,female,2,1,1,120.0,C
+9004,Huang Zhi Qiang,3,male,45,0,0,8.05,Q
+9005,Zhang Xiao Mei,2,female,34,1,2,26.0,S
+9006,Liu Jun Jie,3,male,,0,0,7.75,
+9007,Kao Mei Ling,1,female,60,0,0,80.0,C
+9008,Wang Da Ming,2,male,28,0,0,13.0,S
+9009,Yang Xin Yi,3,female,,1,1,15.5,Q
+9010,Xu Guo Qiang,1,male,50,1,0,71.28,C
+9011,Cai Xiao Fan,3,male,17,4,2,31.0,S
+9012,Peng Shu Fen,2,female,8,2,2,29.0,S
+9013,Zheng Jia Xin,3,male,66,0,0,9.5,S
+9014,Sung Li Hua,1,female,,0,1,135.5,
+9015,Ho Cheng En,3,male,1,0,2,20.0,S

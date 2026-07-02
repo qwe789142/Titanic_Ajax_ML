@@ -27,6 +27,6 @@
     }
   },
   "n_samples": 891,
-  "trained_at": "2026-07-02 10:54:52",
+  "trained_at": "2026-07-02 11:45:26",
   "model_path": "models\\titanic_model.joblib"
 }
